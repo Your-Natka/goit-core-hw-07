@@ -1,27 +1,25 @@
-from .record import Record
+
 from datetime import datetime, timedelta
 
 class AddressBook:
     def __init__(self):
         self.records = {}
 
-    def add_record(self, record: Record):
+    def add_record(self, record):
         self.records[record.name.value] = record
 
     def find(self, name: str):
-        return self.records.get(name)
+        return self.records.get(name, None)
 
     def get_upcoming_birthdays(self):
-        today = datetime.now().date()
-        week_later = today + timedelta(days=7)
-        upcoming = []
-
+        today = datetime.today().date()
+        result = []
         for record in self.records.values():
             if record.birthday:
-                birthday_this_year = record.birthday.value.replace(year=today.year)
-                if today <= birthday_this_year <= week_later:
-                    upcoming.append({
+                days_left = record.days_to_birthday()
+                if days_left is not None and days_left <= 7:
+                    result.append({
                         "name": record.name.value,
-                        "birthday": birthday_this_year.strftime("%d.%m.%Y")
+                        "birthday": record.birthday.value.strftime("%d.%m.%Y")
                     })
-        return upcoming
+        return result

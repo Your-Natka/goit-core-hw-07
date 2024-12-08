@@ -18,3 +18,12 @@ class Record:
 
     def add_birthday(self, birthday: str):
         self.birthday = Birthday(birthday)
+
+    def days_to_birthday(self):
+        if not self.birthday:
+            return None
+        today = datetime.today().date()
+        next_birthday = self.birthday.value.replace(year=today.year)
+        if next_birthday < today:
+            next_birthday = next_birthday.replace(year=today.year + 1)
+        return (next_birthday - today).days
