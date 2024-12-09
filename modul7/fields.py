@@ -15,7 +15,13 @@ class Phone(Field):
 
 class Birthday(Field):
     def __init__(self, value):
+        self.value = self._validate_birthday(value)
+        
+    def _validate_birthday(self, value):
         try:
-            self.value = datetime.strptime(value, "%d.%m.%Y")
+            # Перевіряємо формат
+            day, month, year = map(int, value.split("."))
+            datetime(year=year, month=month, day=day)  # Перевірка валідності
+            return value  # Повертаємо рядок у форматі DD.MM.YYYY
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY.")

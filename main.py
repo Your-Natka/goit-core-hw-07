@@ -1,6 +1,7 @@
 from modul7.address_book import AddressBook
 from modul7.record import Record
 from utility import input_error
+from datetime import datetime, timedelta
 
 @input_error
 def add_contact(args, book: AddressBook):
@@ -55,13 +56,39 @@ def add_birthday(args, book: AddressBook):
 
 @input_error
 def show_birthday(args, book: AddressBook):
-    name = args[0]
-    record = book.find(name)
-    if not record or not record.birthday:
-        raise KeyError("Birthday not found.")
-    return f"{name}'s birthday is {record.birthday.value.strftime('%d.%m.%Y')}."
+    today = datetime.now().date()
+    next_week = today + timedelta(days=7)
+    result = []
 
-@input_error
+    # Якщо вказано ім'я, шукаємо лише для конкретного контакту
+    if args:
+        name = args[0]
+        record = book.find(name)
+        if not record:
+            return f"Contact {name} not found."
+        records = [record]
+    else:
+        # Інакше перевіряємо всі записи
+        records = book.records.values()
+
+    for record in records:
+        if record.birthday:
+            # Отримуємо дату народження як рядок
+            day, month, year = map(int, record.birthday.value.split("."))
+            birthday_this_year = datetime(year=today.year, month=month, day=day).date()
+
+            # Якщо день народження виходить на вихідні, переносимо на понеділок
+            if birthday_this_year.weekday() == 5:  # Субота
+                birthday_this_year += timedelta(days=2)
+            elif birthday_this_year.weekday() == 6:  # Неділя
+                birthday_this_year += timedelta(days=1)
+
+            # Перевіряємо, чи день народження в межах наступного тижня
+            if today <= birthday_this_year <= next_week:
+                result.append(f"{record.name.value} - {birthday_this_year.strftime('%d.%m.%Y')}")
+
+    return "\n".join(result) if result else "No birthdays in the next week."
+
 def birthdays(_, book: AddressBook):
     upcoming = book.get_upcoming_birthdays()
     if not upcoming:
@@ -108,7 +135,7 @@ def main():
         command, args = parse_input(user_input)
         if command in ["close", "exit"]:
             print("Good bye!")
-            breakphone
+            break 
         elif command == "hello":
             print("How can I help you?")
         elif command in commands:
