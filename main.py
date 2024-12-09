@@ -17,14 +17,32 @@ def add_contact(args, book: AddressBook):
 
 @input_error
 def show_all(_, book: AddressBook):
-    if not book.data:
+    if not book.records:  # Перевіряємо, чи є контакти в книзі
         return "No contacts in the address book."
-    result = []
-    for record in book.data.values():
+    
+    result = []  # Збираємо інформацію про всі контакти
+    for record in book.records.values():  # Використовуємо self.records, а не self.data
         phones = ", ".join(phone.value for phone in record.phones)
         birthday = record.birthday.value.strftime("%d.%m.%Y") if record.birthday else "No birthday"
         result.append(f"{record.name.value}: Phones: {phones}, Birthday: {birthday}")
+    
     return "\n".join(result)
+
+@input_error
+def show_phone(args, book: AddressBook):
+    if len(args) < 1:
+        return "Error: You must provide a contact name."
+
+    name = args[0]
+
+    # Знаходимо контакт
+    record = book.find(name)
+    if record is None:
+        return f"Contact {name} not found."
+
+    # Отримуємо телефони
+    phones = ", ".join(phone.value for phone in record.phones)
+    return f"{name}: Phones: {phones}" if phones else f"{name} has no phones."
 
 @input_error
 def add_birthday(args, book: AddressBook):
@@ -79,6 +97,7 @@ def main():
         "add": add_contact,
         "change": change_contact,
         "all": show_all,
+        "phone": show_phone,
         "add-birthday": add_birthday,
         "show-birthday": show_birthday,
         "birthdays": birthdays,
@@ -89,7 +108,7 @@ def main():
         command, args = parse_input(user_input)
         if command in ["close", "exit"]:
             print("Good bye!")
-            break
+            breakphone
         elif command == "hello":
             print("How can I help you?")
         elif command in commands:
