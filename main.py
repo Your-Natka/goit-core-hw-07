@@ -54,12 +54,30 @@ def parse_input(user_input):
     parts = user_input.strip().split(" ")
     return parts[0], parts[1:]
 
+@input_error
+def change_contact(args, book: AddressBook):
+    name, old_phone, new_phone, *_ = args
+
+    # Знаходимо контакт
+    record = book.find(name)
+    if record is None:
+        return f"Contact {name} not found."
+
+    # Шукаємо старий телефон
+    for phone in record.phones:
+        if phone.value == old_phone:
+            phone.value = new_phone  # Змінюємо телефон
+            return f"Phone number for {name} updated from {old_phone} to {new_phone}."
+    
+    return f"Phone number {old_phone} not found for contact {name}."
+
 def main():
     book = AddressBook()
     print("Welcome to the assistant bot!")
     
     commands = {
         "add": add_contact,
+        "change": change_contact,
         "all": show_all,
         "add-birthday": add_birthday,
         "show-birthday": show_birthday,
