@@ -24,7 +24,7 @@ def show_all(_, book: AddressBook):
     result = []  # Збираємо інформацію про всі контакти
     for record in book.records.values():  # Використовуємо self.records, а не self.data
         phones = ", ".join(phone.value for phone in record.phones)
-        birthday = record.birthday.value.strftime("%d.%m.%Y") if record.birthday else "No birthday"
+        birthday = str(record.birthday) if record.birthday else "No birthday"
         result.append(f"{record.name.value}: Phones: {phones}, Birthday: {birthday}")
     
     return "\n".join(result)
@@ -47,37 +47,54 @@ def show_phone(args, book: AddressBook):
 
 @input_error
 def add_birthday(args, book: AddressBook):
-    name, birthday = args
+    if len(args) < 2:
+        return "Error: You must provide a contact name and birthday (DD.MM.YYYY)."
+
+    name, birthday = args[0], args[1]
+
+    # Перевіряємо, чи знайдено запис
     record = book.find(name)
     if not record:
-        raise KeyError("Contact not found.")
-    record.add_birthday(birthday)
-    return f"Birthday added for {name}."
+        return f"Error: Contact {name} not found."
 
+    # Перетворення рядка на datetime
+    try:
+        birthday_date = datetime.strptime(birthday, "%d.%m.%Y")
+        birthday_str = birthday_date.strftime("%d.%m.%Y")  # Перетворення на рядок в потрібному форматі
+        record.add_birthday(birthday_str)  # Додаємо як рядок
+        return f"Birthday added for {name}."
+    except ValueError:
+        return "Error: Invalid birthday format. Use DD.MM.YYYY."
+    
 @input_error
 def show_birthday(args, book: AddressBook):
+    if not args:
+        return "Error: No name provided."
+
+    name = args[0]
+    record = book.find(name)
+
+    if not record or not record.birthday:
+        return f"Birthday not found for {name}."
+
+    # Показуємо лише дату народження контакту
+    return f"{name}'s birthday is {record.birthday.value.strftime('%d.%m.%Y')}."
+
+@input_error
+def birthdays(_, book: AddressBook):
     today = datetime.now().date()
     next_week = today + timedelta(days=7)
     result = []
 
-    # Якщо вказано ім'я, шукаємо лише для конкретного контакту
-    if args:
-        name = args[0]
-        record = book.find(name)
-        if not record:
-            return f"Contact {name} not found."
-        records = [record]
-    else:
-        # Інакше перевіряємо всі записи
-        records = book.records.values()
-
-    for record in records:
+    for record in book.records.values():
         if record.birthday:
-            # Отримуємо дату народження як рядок
-            day, month, year = map(int, record.birthday.value.split("."))
+            # Отримуємо дату народження для поточного року
+            birthday_this_year = record.birthday.value
+            day, month, year = birthday_this_year.day, birthday_this_year.month, birthday_this_year.year
+
+            # Переносимо на понеділок, якщо день народження випадає на вихідні
             birthday_this_year = datetime(year=today.year, month=month, day=day).date()
 
-            # Якщо день народження виходить на вихідні, переносимо на понеділок
             if birthday_this_year.weekday() == 5:  # Субота
                 birthday_this_year += timedelta(days=2)
             elif birthday_this_year.weekday() == 6:  # Неділя
@@ -89,15 +106,11 @@ def show_birthday(args, book: AddressBook):
 
     return "\n".join(result) if result else "No birthdays in the next week."
 
-def birthdays(_, book: AddressBook):
-    upcoming = book.get_upcoming_birthdays()
-    if not upcoming:
-        return "No upcoming birthdays."
-    return "\n".join([f"{entry['name']} - {entry['birthday']}" for entry in upcoming])
-
 def parse_input(user_input):
-    parts = user_input.strip().split(" ")
-    return parts[0], parts[1:]
+    parts = user_input.strip().split(" ", 1)
+    command = parts[0]
+    args = parts[1].split(" ") if len(parts) > 1 else []
+    return command, args
 
 @input_error
 def change_contact(args, book: AddressBook):
@@ -125,7 +138,7 @@ def main():
         "change": change_contact,
         "all": show_all,
         "phone": show_phone,
-        "add-birthday": add_birthday,
+        "add-birthday": add_birthday,  
         "show-birthday": show_birthday,
         "birthdays": birthdays,
     }
